@@ -16,11 +16,10 @@ loaderIsConfigured || die "$(TEXT "Loader is not configured!")"
 NVPCI_ADDR=$(lspci -nd 10de: | grep -e 0300 -e 0302 | awk '{print $1}')
 if [ -n "${NVPCI_ADDR}" ]; then
   modprobe -r nouveau || true
-  NVDEV_PATH=$(find /sys/devices -name *${NVPCI_ADDR} | grep  -v supplier)
-  for DEV_PATH in ${NVDEV_PATH}
-  do
+  NVDEV_PATH=$(find /sys/devices -name *${NVPCI_ADDR} | grep -v supplier)
+  for DEV_PATH in ${NVDEV_PATH}; do
     if [ -e ${DEV_PATH}/reset ]; then
-          echo 1 > ${DEV_PATH}/reset || true
+      echo 1 >${DEV_PATH}/reset || true
     fi
   done
 fi
@@ -184,6 +183,9 @@ if [ "${DT}" = "true" ] && ! echo "epyc7002 purley broadwellnkv2" | grep -wq "${
   fi
 fi
 
+CMDLINE[kvm.ignore_msrs']="1"
+CMDLINE[kvm.report_ignored_msrs']="0"
+
 if echo "apollolake geminilake" | grep -wq "${PLATFORM}"; then
   CMDLINE["intel_iommu"]="igfx_off"
 fi
@@ -317,7 +319,7 @@ else
     [ -f "${TMP_PATH}/qrcode_qhxg.png" ] && echo | fbv -acufi "${TMP_PATH}/qrcode_qhxg.png" >/dev/null 2>/dev/null || true
   fi
 
-   # Executes DSM kernel via KEXEC
+  # Executes DSM kernel via KEXEC
   KEXECARGS=""
   if [ $(echo "${KVER:-4}" | cut -d'.' -f1) -lt 4 ] && [ ${EFI} -eq 1 ]; then
     echo -e "\033[1;33m$(TEXT "Warning, running kexec with --noefi param, strange things will happen!!")\033[0m"
